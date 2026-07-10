@@ -78,7 +78,7 @@ app.post('/compile', async (req, res) => {
     res.status(500).json({
       status: 'error',
       error: error.message,
-      build_log: buildLog.slice(-3000),
+      build_log: buildLog.slice(-8000),
     });
 
     setTimeout(() => {
