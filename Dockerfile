@@ -61,31 +61,22 @@ RUN GDBIN=/opt/gendev/sgdk/bin && \
     done && \
     echo "=== bin dir ===" && ls -la $GDBIN/
 
-# Find and link rescomp.jar if it exists somewhere in the gendev image
-RUN GDBIN=/opt/gendev/sgdk/bin && \
-    RESCOMP=$(find /opt/gendev -name "rescomp.jar" 2>/dev/null | head -1) && \
-    if [ -n "$RESCOMP" ]; then \
-      ln -sf "$RESCOMP" $GDBIN/rescomp.jar && \
-      echo "Linked rescomp.jar from $RESCOMP"; \
-    else \
-      echo "rescomp.jar not found — resource compilation will be skipped"; \
-    fi
-
-# Find and link pre-built libmd.a if it exists
+# rescomp.jar already exists in the gendev image's bin/ dir (see step above).
+# Link pre-built libmd.a / libgcc.a if they exist elsewhere (skip if already in place).
 RUN GDBLIB=/opt/gendev/sgdk/lib && \
     mkdir -p $GDBLIB && \
-    LIBMD=$(find /opt/gendev -name "libmd.a" 2>/dev/null | head -1) && \
-    if [ -n "$LIBMD" ]; then \
-      ln -sf "$LIBMD" $GDBLIB/libmd.a && \
-      echo "Linked libmd.a from $LIBMD"; \
-    else \
-      echo "libmd.a not found — will be built from source on first compile"; \
-    fi && \
-    LIBGCC=$(find /opt/gendev -name "libgcc.a" 2>/dev/null | head -1) && \
-    if [ -n "$LIBGCC" ]; then \
-      ln -sf "$LIBGCC" $GDBLIB/libgcc.a && \
-      echo "Linked libgcc.a from $LIBGCC"; \
-    fi
+    for lib in libmd.a libgcc.a; do \
+      if [ ! -e "$GDBLIB/$lib" ]; then \
+        FOUND=$(find /opt/gendev -name "$lib" 2>/dev/null | grep -v "/sgdk/lib/" | head -1); \
+        if [ -n "$FOUND" ]; then \
+          ln -sf "$FOUND" $GDBLIB/$lib && echo "Linked $lib from $FOUND"; \
+        else \
+          echo "$lib not found — will be built from source on first compile"; \
+        fi; \
+      else \
+        echo "$lib already in place"; \
+      fi; \
+    done
 
 # Reset the gendev image's ENTRYPOINT (which defaults to running make)
 ENTRYPOINT []
