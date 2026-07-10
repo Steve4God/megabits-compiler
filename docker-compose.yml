@@ -1,0 +1,13 @@
+version: '3.8'
+
+services:
+  rom-compiler:
+    build: .
+    ports:
+      - "3000:3000"
+    environment:
+      - PORT=3000
+      - GENDEV=/opt/gendev
+    restart: unless-stopped
+    tmpfs:
+      - /tmp:size=256m
