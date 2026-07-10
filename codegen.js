@@ -237,7 +237,7 @@ function generateLevelC(gameData) {
 
 #define GRID_W ${gridW}
 #define GRID_H ${gridH}
-#define TILE_SIZE 16
+#define GAME_TILE_SIZE 16
 
 // Collision map: 1 = solid, 0 = empty
 const u8 collision_map[GRID_H][GRID_W] = {
@@ -252,8 +252,8 @@ ${tileArray}
 // Check if a world-space pixel position is solid
 u8 isSolid(s16 px, s16 py) {
     if (px < 0 || py < 0) return 1; // walls
-    s16 tx = px / TILE_SIZE;
-    s16 ty = py / TILE_SIZE;
+    s16 tx = px / GAME_TILE_SIZE;
+    s16 ty = py / GAME_TILE_SIZE;
     if (tx < 0 || tx >= GRID_W || ty < 0 || ty >= GRID_H) return 0;
     return collision_map[ty][tx];
 }
@@ -286,7 +286,7 @@ function generateSimpleLevelC(gameData) {
 
 #define GRID_W 20
 #define GRID_H 14
-#define TILE_SIZE 16
+#define GAME_TILE_SIZE 16
 
 const u8 collision_map[GRID_H][GRID_W] = {
   {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0},
@@ -324,8 +324,8 @@ const u8 tile_map[GRID_H][GRID_W] = {
 
 u8 isSolid(s16 px, s16 py) {
     if (px < 0 || py < 0) return 1;
-    s16 tx = px / TILE_SIZE;
-    s16 ty = py / TILE_SIZE;
+    s16 tx = px / GAME_TILE_SIZE;
+    s16 ty = py / GAME_TILE_SIZE;
     if (tx < 0 || tx >= GRID_W || ty < 0 || ty >= GRID_H) return 0;
     return collision_map[ty][tx];
 }
@@ -625,8 +625,8 @@ async function compileProject(projectDir, projectId) {
   const gdkPath = findGdkPath();
   const buildLogPath = path.join(projectDir, 'build.log');
 
-  // Run the SGDK build
-  const cmd = `cd ${projectDir} && make -f ${gdkPath}/mkfiles/Makefile.rom clean all 2>&1 | tee ${buildLogPath}`;
+  // Run the SGDK build — redirect to log file (not tee) so make's exit code is preserved
+  const cmd = `cd ${projectDir} && make -f ${gdkPath}/mkfiles/Makefile.rom clean all > ${buildLogPath} 2>&1`;
 
   try {
     execSync(cmd, {
@@ -637,7 +637,7 @@ async function compileProject(projectDir, projectId) {
     // Read build log for error details
     let log = '';
     try { log = fs.readFileSync(buildLogPath, 'utf8'); } catch {}
-    throw new Error(`SGDK compilation failed. Build log:\n${log.slice(-2000)}`);
+    throw new Error(`SGDK compilation failed. Build log (last 6000 chars):\n${log.slice(-6000)}`);
   }
 
   // Find the output ROM
