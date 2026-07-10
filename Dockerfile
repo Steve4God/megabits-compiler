@@ -26,6 +26,7 @@ RUN mkdir -p /tmp/sgdk_src && \
     curl -fsSL https://github.com/Stephane-D/SGDK/archive/refs/tags/v1.62.tar.gz | \
       tar xz -C /tmp/sgdk_src --strip-components=1 && \
     SGDK=/opt/gendev/sgdkv1.62 && \
+    rm -rf $SGDK/inc $SGDK/src $SGDK/res $SGDK/md.ld $SGDK/makefile.gen && \
     cp -r /tmp/sgdk_src/inc $SGDK/inc && \
     cp -r /tmp/sgdk_src/src $SGDK/src && \
     cp -r /tmp/sgdk_src/res $SGDK/res && \
