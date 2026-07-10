@@ -17,7 +17,17 @@ ENV GDK=/opt/gendev/sgdk
 ENV NODE_ENV=production
 
 # Verify SGDK files exist at build time (shows in build logs)
-RUN ls -la /opt/gendev/ && ls -la /opt/gendev/sgdk/mkfiles/ || echo "SGDK mkfiles not found"
+RUN echo "=== /opt/gendev ===" && ls -la /opt/gendev/ && \
+    echo "=== sgdkv1.62 ===" && ls -la /opt/gendev/sgdkv1.62/ && \
+    echo "=== mkfiles ===" && ls -la /opt/gendev/sgdkv1.62/mkfiles/ || echo "SGDK mkfiles not found"
+
+# Download gendev makefiles from GitHub in case they're missing from the pre-built image
+RUN MKF=/opt/gendev/sgdkv1.62/mkfiles && \
+    mkdir -p $MKF && \
+    curl -fsSL https://raw.githubusercontent.com/kubilus1/gendev/master/sgdk/mkfiles/Makefile.rom -o $MKF/Makefile.rom && \
+    curl -fsSL https://raw.githubusercontent.com/kubilus1/gendev/master/sgdk/mkfiles/makefile.vars -o $MKF/makefile.vars && \
+    curl -fsSL https://raw.githubusercontent.com/kubilus1/gendev/master/sgdk/mkfiles/Makefile.sgdk_lib -o $MKF/Makefile.sgdk_lib && \
+    echo "=== mkfiles after download ===" && ls -la $MKF/
 
 # Reset the gendev image's ENTRYPOINT (which defaults to running make)
 ENTRYPOINT []
