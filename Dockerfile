@@ -59,13 +59,15 @@ RUN GDBIN=/opt/gendev/sgdk/bin && \
     for tool in sjasm sizebnd bintos; do \
       ln -sf /opt/gendev/bin/$tool $GDBIN/$tool 2>/dev/null || true; \
     done && \
+    ln -sf /opt/gendev/bin/rescomp.jar $GDBIN/rescomp.jar 2>/dev/null || true && \
     echo "=== bin dir ===" && ls -la $GDBIN/
 
 # Build the SGDK library (libmd.a) from source using gendev's Makefile.sgdk_lib.
 # The pre-built image doesn't include libmd.a, so we must compile it ourselves.
+# Makefile.sgdk_lib uses relative paths (src/, res/, inc/, bin/) so we must run from $SGDK.
 RUN SGDK=/opt/gendev/sgdkv1.62 && \
     cd $SGDK && \
-    make -f $SGDK/mkfiles/Makefile.sgdk_lib PATH="/opt/gendev/bin:$PATH" && \
+    GENDEV=/opt/gendev make -f $SGDK/mkfiles/Makefile.sgdk_lib PATH="/opt/gendev/bin:$PATH" && \
     mkdir -p $SGDK/lib && \
     cp -f $SGDK/libmd.a $SGDK/lib/libmd.a && \
     echo "=== libmd.a built ===" && ls -la $SGDK/lib/libmd.a
