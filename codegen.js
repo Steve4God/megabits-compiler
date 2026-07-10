@@ -3,6 +3,36 @@ const path = require('path');
 const { execSync } = require('child_process');
 const { PNG } = require('pngjs');
 
+// Find the SGDK directory that contains mkfiles/Makefile.rom
+function findGdkPath() {
+  const gendev = process.env.GENDEV || '/opt/gendev';
+
+  // Try common paths: symlink, versioned dir, direct
+  const candidates = [
+    path.join(gendev, 'sgdk'),
+    path.join(gendev, 'sgdkv1.62'),
+    path.join(gendev, 'sgdkv1.60'),
+    path.join(gendev, 'sgdkv1.51'),
+  ];
+
+  for (const c of candidates) {
+    if (fs.existsSync(path.join(c, 'mkfiles', 'Makefile.rom'))) {
+      return c;
+    }
+  }
+
+  // Fall back to searching the filesystem
+  try {
+    const found = execSync(`find ${gendev} -name Makefile.rom -path '*/mkfiles/*' 2>/dev/null | head -1`, { encoding: 'utf8' }).trim();
+    if (found) {
+      // found is .../mkfiles/Makefile.rom — return the parent of mkfiles
+      return path.dirname(path.dirname(found));
+    }
+  } catch {}
+
+  throw new Error(`SGDK Makefile.rom not found under ${gendev}. Checked: ${candidates.join(', ')}`);
+}
+
 const PALETTE = [
   [0, 0, 0],       // 0 - transparent
   [15, 15, 27],    // 1
@@ -567,10 +597,10 @@ async function generateProject(projectDir, gameData) {
   fs.writeFileSync(path.join(projectDir, 'res', 'resources.res'), generateResourceFile(gameData));
 
   // Generate Makefile (uses gendev's SGDK makefile)
-  // The gendev build system expects specific structure
-  const gendevPath = process.env.GENDEV || '/opt/gendev';
+  const gdkPath = findGdkPath();
+  console.log('Found SGDK at:', gdkPath);
   const makefileContent = `# Auto-generated Makefile
-GDK := ${gendevPath}/sgdk
+GDK := ${gdkPath}
 export GDK
 
 # Project name
@@ -592,15 +622,16 @@ include $(GDK)/mkfiles/Makefile.rom
 
 async function compileProject(projectDir, projectId) {
   const gendevPath = process.env.GENDEV || '/opt/gendev';
+  const gdkPath = findGdkPath();
   const buildLogPath = path.join(projectDir, 'build.log');
 
   // Run the SGDK build
-  const cmd = `cd ${projectDir} && make -f ${gendevPath}/sgdk/mkfiles/Makefile.rom clean all 2>&1 | tee ${buildLogPath}`;
+  const cmd = `cd ${projectDir} && make -f ${gdkPath}/mkfiles/Makefile.rom clean all 2>&1 | tee ${buildLogPath}`;
 
   try {
     execSync(cmd, {
       timeout: 120000,
-      env: { ...process.env, GENDEV: gendevPath, GDK: `${gendevPath}/sgdk` },
+      env: { ...process.env, GENDEV: gendevPath, GDK: gdkPath },
     });
   } catch (error) {
     // Read build log for error details
