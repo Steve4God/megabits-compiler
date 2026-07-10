@@ -13,51 +13,46 @@ An SGDK-based compilation server that converts game data from the Sixteen Megabi
 
 ```
 Base44 App (Studio)  ──HTTP POST──>  ROM Compiler Server  ──SGDK──>  .md ROM
-                     <──ROM (base64)──
+                      <──ROM (base64)──
 ```
 
-## Deploy on Railway (free tier)
+## Deploy on Render (free tier)
 
 ### Step 1 — Push to GitHub
 
-Push the contents of the `server/` folder to a new GitHub repository:
+The contents of this folder should already be in your GitHub repo (`megabits-compiler`).
 
-```bash
-cd server
-git init
-git add .
-git commit -m "ROM compiler server"
-git branch -M main
-git remote add origin https://github.com/YOUR_USERNAME/megabits-compiler.git
-git push -u origin main
-```
+### Step 2 — Deploy on Render
 
-### Step 2 — Deploy on Railway
-
-1. Go to [railway.app](https://railway.app) and sign in with GitHub
-2. Click **New Project** → **Deploy from GitHub repo**
+1. Go to [render.com](https://render.com) and sign in with GitHub
+2. Click **New +** → **Web Service**
 3. Select your `megabits-compiler` repository
-4. Railway auto-detects the Dockerfile and `railway.json` — it will start building
-5. The first build takes ~5 minutes (pulls the 376MB gendev toolchain image + installs Node.js)
-6. Once deployed, Railway gives you a public URL like `https://megabits-compiler-production.up.railway.app`
-7. Test it: visit `https://YOUR-URL/health` — you should see `{"status":"ok",...}`
+4. Render auto-detects the Dockerfile — set the following:
+   - **Name**: `megabits-compiler`
+   - **Runtime**: Docker
+   - **Instance Type**: Free
+   - **Health Check Path**: `/health`
+5. Click **Create Web Service**
+6. The first build takes ~5–10 minutes (pulls the 376 MB gendev toolchain image + installs Node.js)
+7. Once deployed, Render gives you a public URL like `https://megabits-compiler.onrender.com`
+8. Test it: visit `https://YOUR-URL/health` — you should see `{"status":"ok",...}`
 
 ### Step 3 — Connect to your Base44 studio
 
 In your Base44 dashboard → Settings → Environment Variables, set:
 
 ```
-ROM_COMPILER_URL = https://megabits-compiler-production.up.railway.app
+ROM_COMPILER_URL = https://megabits-compiler.onrender.com
 ```
 
 That's it — the "Compile ROM" button in your studio will now produce real `.md` ROMs.
 
-### Railway notes
+### Render notes
 
-- **Free tier**: Railway gives $5 of usage credit (≈500 hours). The server sleeps when idle, so it lasts a long time for occasional compilations.
-- **Cold starts**: After idle, the first compile request takes ~10 seconds to wake the server.
+- **Free tier**: Render gives 750 hours/month. The service spins down after 15 min of inactivity, so it won't consume hours while idle.
+- **Cold starts**: After idle, the first compile request takes ~30–60 seconds to wake the server (subsequent requests are fast).
 - **Build time**: Each ROM compilation takes 10–30 seconds once the server is awake.
-- **Port**: Railway sets `PORT` automatically — `server.js` already reads it.
+- **Port**: Render sets `PORT` automatically — `server.js` already reads it.
 
 ## API
 
@@ -126,7 +121,6 @@ Compiles game data into a Mega Drive ROM.
 ## Local Development
 
 ```bash
-cd server
 npm install
 npm start
 ```
