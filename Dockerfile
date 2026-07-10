@@ -61,22 +61,29 @@ RUN GDBIN=/opt/gendev/sgdk/bin && \
     done && \
     echo "=== bin dir ===" && ls -la $GDBIN/
 
-# rescomp.jar already exists in the gendev image's bin/ dir (see step above).
-# Link pre-built libmd.a / libgcc.a if they exist elsewhere (skip if already in place).
-RUN GDBLIB=/opt/gendev/sgdk/lib && \
+# Build the SGDK library (libmd.a) from source using gendev's Makefile.sgdk_lib.
+# The pre-built image doesn't include libmd.a, so we must compile it ourselves.
+RUN SGDK=/opt/gendev/sgdkv1.62 && \
+    cd $SGDK && \
+    make -f $SGDK/mkfiles/Makefile.sgdk_lib PATH="/opt/gendev/bin:$PATH" && \
+    mkdir -p $SGDK/lib && \
+    cp -f $SGDK/libmd.a $SGDK/lib/libmd.a && \
+    echo "=== libmd.a built ===" && ls -la $SGDK/lib/libmd.a
+
+# Locate libgcc.a from the m68k-elf-gcc toolchain and link it into SGDK lib/
+RUN GDBLIB=/opt/gendev/sgdkv1.62/lib && \
     mkdir -p $GDBLIB && \
-    for lib in libmd.a libgcc.a; do \
-      if [ ! -e "$GDBLIB/$lib" ]; then \
-        FOUND=$(find /opt/gendev -name "$lib" 2>/dev/null | grep -v "/sgdk/lib/" | head -1); \
-        if [ -n "$FOUND" ]; then \
-          ln -sf "$FOUND" $GDBLIB/$lib && echo "Linked $lib from $FOUND"; \
-        else \
-          echo "$lib not found — will be built from source on first compile"; \
-        fi; \
+    LIBGCC=$(/opt/gendev/bin/m68k-elf-gcc -print-libgcc-file-name 2>/dev/null) && \
+    if [ -n "$LIBGCC" ] && [ -f "$LIBGCC" ]; then \
+      ln -sf "$LIBGCC" $GDBLIB/libgcc.a && echo "Linked libgcc.a from $LIBGCC"; \
+    else \
+      FOUND=$(find /opt/gendev -name "libgcc.a" 2>/dev/null | head -1); \
+      if [ -n "$FOUND" ]; then \
+        ln -sf "$FOUND" $GDBLIB/libgcc.a && echo "Linked libgcc.a from $FOUND"; \
       else \
-        echo "$lib already in place"; \
+        echo "WARNING: libgcc.a not found anywhere"; \
       fi; \
-    done
+    fi
 
 # Reset the gendev image's ENTRYPOINT (which defaults to running make)
 ENTRYPOINT []
