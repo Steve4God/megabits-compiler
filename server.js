@@ -15,6 +15,18 @@ app.get('/health', (req, res) => {
   res.json({ status: 'ok', service: 'megabits-rom-compiler', sgdk: 'gendev' });
 });
 
+app.get('/diag', (req, res) => {
+  const { execSync } = require('child_process');
+  const gendev = process.env.GENDEV || '/opt/gendev';
+  let listing = '';
+  try {
+    listing = execSync(`ls -la ${gendev}/ && echo "---" && ls -la ${gendev}/sgdk* 2>/dev/null && echo "---" && find ${gendev} -name Makefile.rom 2>/dev/null`, { encoding: 'utf8' });
+  } catch (e) {
+    listing = e.stdout || e.message;
+  }
+  res.type('text/plain').send(listing);
+});
+
 app.post('/compile', async (req, res) => {
   const gameData = req.body;
 
