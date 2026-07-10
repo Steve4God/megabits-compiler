@@ -40,9 +40,19 @@ RUN SGDK=/opt/gendev/sgdkv1.62 && \
     echo "=== md.ld ===" && ls -la $SGDK/md.ld
 
 # Create symlink: /opt/gendev/sgdk -> sgdkv1.62 so all GDK paths resolve consistently
-RUN ln -sf /opt/gendev/sgdkv1.62 /opt/gendev/sgdk && \
-    ls -la /opt/gendev/sgdk/src/boot/ && \
-    ls -la /opt/gendev/sgdk/mkfiles/Makefile.rom
+RUN ln -sf /opt/gendev/sgdkv1.62 /opt/gendev/sgdk
+
+# SGDK's makefile.gen expects binaries at $(GDK)/bin/ (e.g. gcc, ld, objcopy)
+# but gendev has them as m68k-elf-* at $(GENDEV)/bin/. Create symlinks.
+RUN GDBIN=/opt/gendev/sgdk/bin && \
+    mkdir -p $GDBIN && \
+    for tool in gcc ld objcopy nm ar as ranlib; do \
+      ln -sf /opt/gendev/bin/m68k-elf-$tool $GDBIN/$tool 2>/dev/null || true; \
+    done && \
+    for tool in sjasm sizebnd bintos; do \
+      ln -sf /opt/gendev/bin/$tool $GDBIN/$tool 2>/dev/null || true; \
+    done && \
+    ls -la $GDBIN/
 
 # Reset the gendev image's ENTRYPOINT (which defaults to running make)
 ENTRYPOINT []
