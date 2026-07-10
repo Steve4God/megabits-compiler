@@ -20,7 +20,7 @@ app.get('/diag', (req, res) => {
   const gendev = process.env.GENDEV || '/opt/gendev';
   let listing = '';
   try {
-    listing = execSync(`ls -la ${gendev}/ && echo "---" && ls -la ${gendev}/sgdk* 2>/dev/null && echo "---" && find ${gendev} -name Makefile.rom 2>/dev/null`, { encoding: 'utf8' });
+    listing = execSync(`ls -la ${gendev}/ && echo "---" && ls -la ${gendev}/sgdk* 2>/dev/null && echo "---" && ls -la ${gendev}/sgdkv1.62/mkfiles/ 2>/dev/null && echo "---" && find ${gendev} -name Makefile.rom 2>/dev/null`, { encoding: 'utf8' });
   } catch (e) {
     listing = e.stdout || e.message;
   }
