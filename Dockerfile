@@ -16,6 +16,12 @@ ENV GENDEV=/opt/gendev
 ENV GDK=/opt/gendev/sgdk
 ENV NODE_ENV=production
 
+# Verify SGDK files exist at build time (shows in build logs)
+RUN ls -la /opt/gendev/ && ls -la /opt/gendev/sgdk/mkfiles/ || echo "SGDK mkfiles not found"
+
+# Reset the gendev image's ENTRYPOINT (which defaults to running make)
+ENTRYPOINT []
+
 EXPOSE 3000
 
 CMD ["node", "server.js"]
