@@ -21,23 +21,29 @@ RUN echo "=== /opt/gendev ===" && ls -la /opt/gendev/ && \
     echo "=== sgdkv1.62 ===" && ls -la /opt/gendev/sgdkv1.62/ && \
     echo "=== mkfiles ===" && ls -la /opt/gendev/sgdkv1.62/mkfiles/ || echo "SGDK mkfiles not found"
 
-# Download gendev makefiles from GitHub in case they're missing from the pre-built image
+# Download the COMPLETE SGDK v1.62 source tree (pre-built image is missing inc/, src/, res/, etc.)
+RUN mkdir -p /tmp/sgdk_src && \
+    curl -fsSL https://github.com/Stephane-D/SGDK/archive/refs/tags/v1.62.tar.gz | \
+      tar xz -C /tmp/sgdk_src --strip-components=1 && \
+    SGDK=/opt/gendev/sgdkv1.62 && \
+    cp -r /tmp/sgdk_src/inc $SGDK/inc && \
+    cp -r /tmp/sgdk_src/src $SGDK/src && \
+    cp -r /tmp/sgdk_src/res $SGDK/res && \
+    cp -f /tmp/sgdk_src/md.ld $SGDK/md.ld && \
+    cp -f /tmp/sgdk_src/makefile.gen $SGDK/makefile.gen && \
+    rm -rf /tmp/sgdk_src && \
+    echo "=== inc dir ===" && ls $SGDK/inc/ | head -5 && \
+    echo "=== genesis.h ===" && head -3 $SGDK/inc/genesis.h && \
+    echo "=== md.ld ===" && ls -la $SGDK/md.ld
+
+# Download gendev makefiles from GitHub (the SGDK source tree doesn't include gendev's wrapper makefiles)
 RUN MKF=/opt/gendev/sgdkv1.62/mkfiles && \
     mkdir -p $MKF && \
     curl -fsSL https://raw.githubusercontent.com/kubilus1/gendev/master/sgdk/mkfiles/Makefile.rom -o $MKF/Makefile.rom && \
     curl -fsSL https://raw.githubusercontent.com/kubilus1/gendev/master/sgdk/mkfiles/makefile.vars -o $MKF/makefile.vars && \
     curl -fsSL https://raw.githubusercontent.com/kubilus1/gendev/master/sgdk/mkfiles/Makefile.sgdk_lib -o $MKF/Makefile.sgdk_lib && \
-    curl -fsSL https://raw.githubusercontent.com/Stephane-D/SGDK/v1.62/makefile.gen -o $MKF/makefile.gen && \
-    echo "=== mkfiles after download ===" && ls -la $MKF/
-
-# Download SGDK boot files and linker script (missing from pre-built image)
-RUN SGDK=/opt/gendev/sgdkv1.62 && \
-    mkdir -p $SGDK/src/boot && \
-    curl -fsSL https://raw.githubusercontent.com/Stephane-D/SGDK/v1.62/src/boot/sega.s -o $SGDK/src/boot/sega.s && \
-    curl -fsSL https://raw.githubusercontent.com/Stephane-D/SGDK/v1.62/src/boot/rom_head.c -o $SGDK/src/boot/rom_head.c && \
-    curl -fsSL https://raw.githubusercontent.com/Stephane-D/SGDK/v1.62/md.ld -o $SGDK/md.ld && \
-    echo "=== boot dir ===" && ls -la $SGDK/src/boot/ && \
-    echo "=== md.ld ===" && ls -la $SGDK/md.ld
+    cp -f /opt/gendev/sgdkv1.62/makefile.gen $MKF/makefile.gen && \
+    echo "=== mkfiles ===" && ls -la $MKF/
 
 # Create symlink: /opt/gendev/sgdk -> sgdkv1.62 so all GDK paths resolve consistently
 RUN ln -sf /opt/gendev/sgdkv1.62 /opt/gendev/sgdk
@@ -52,7 +58,33 @@ RUN GDBIN=/opt/gendev/sgdk/bin && \
     for tool in sjasm sizebnd bintos; do \
       ln -sf /opt/gendev/bin/$tool $GDBIN/$tool 2>/dev/null || true; \
     done && \
-    ls -la $GDBIN/
+    echo "=== bin dir ===" && ls -la $GDBIN/
+
+# Find and link rescomp.jar if it exists somewhere in the gendev image
+RUN GDBIN=/opt/gendev/sgdk/bin && \
+    RESCOMP=$(find /opt/gendev -name "rescomp.jar" 2>/dev/null | head -1) && \
+    if [ -n "$RESCOMP" ]; then \
+      ln -sf "$RESCOMP" $GDBIN/rescomp.jar && \
+      echo "Linked rescomp.jar from $RESCOMP"; \
+    else \
+      echo "rescomp.jar not found — resource compilation will be skipped"; \
+    fi
+
+# Find and link pre-built libmd.a if it exists
+RUN GDBLIB=/opt/gendev/sgdk/lib && \
+    mkdir -p $GDBLIB && \
+    LIBMD=$(find /opt/gendev -name "libmd.a" 2>/dev/null | head -1) && \
+    if [ -n "$LIBMD" ]; then \
+      ln -sf "$LIBMD" $GDBLIB/libmd.a && \
+      echo "Linked libmd.a from $LIBMD"; \
+    else \
+      echo "libmd.a not found — will be built from source on first compile"; \
+    fi && \
+    LIBGCC=$(find /opt/gendev -name "libgcc.a" 2>/dev/null | head -1) && \
+    if [ -n "$LIBGCC" ]; then \
+      ln -sf "$LIBGCC" $GDBLIB/libgcc.a && \
+      echo "Linked libgcc.a from $LIBGCC"; \
+    fi
 
 # Reset the gendev image's ENTRYPOINT (which defaults to running make)
 ENTRYPOINT []
