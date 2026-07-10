@@ -30,6 +30,20 @@ RUN MKF=/opt/gendev/sgdkv1.62/mkfiles && \
     curl -fsSL https://raw.githubusercontent.com/Stephane-D/SGDK/v1.62/makefile.gen -o $MKF/makefile.gen && \
     echo "=== mkfiles after download ===" && ls -la $MKF/
 
+# Download SGDK boot files and linker script (missing from pre-built image)
+RUN SGDK=/opt/gendev/sgdkv1.62 && \
+    mkdir -p $SGDK/src/boot && \
+    curl -fsSL https://raw.githubusercontent.com/Stephane-D/SGDK/v1.62/src/boot/sega.s -o $SGDK/src/boot/sega.s && \
+    curl -fsSL https://raw.githubusercontent.com/Stephane-D/SGDK/v1.62/src/boot/rom_head.c -o $SGDK/src/boot/rom_head.c && \
+    curl -fsSL https://raw.githubusercontent.com/Stephane-D/SGDK/v1.62/md.ld -o $SGDK/md.ld && \
+    echo "=== boot dir ===" && ls -la $SGDK/src/boot/ && \
+    echo "=== md.ld ===" && ls -la $SGDK/md.ld
+
+# Create symlink: /opt/gendev/sgdk -> sgdkv1.62 so all GDK paths resolve consistently
+RUN ln -sf /opt/gendev/sgdkv1.62 /opt/gendev/sgdk && \
+    ls -la /opt/gendev/sgdk/src/boot/ && \
+    ls -la /opt/gendev/sgdk/mkfiles/Makefile.rom
+
 # Reset the gendev image's ENTRYPOINT (which defaults to running make)
 ENTRYPOINT []
 
