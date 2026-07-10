@@ -27,6 +27,7 @@ RUN MKF=/opt/gendev/sgdkv1.62/mkfiles && \
     curl -fsSL https://raw.githubusercontent.com/kubilus1/gendev/master/sgdk/mkfiles/Makefile.rom -o $MKF/Makefile.rom && \
     curl -fsSL https://raw.githubusercontent.com/kubilus1/gendev/master/sgdk/mkfiles/makefile.vars -o $MKF/makefile.vars && \
     curl -fsSL https://raw.githubusercontent.com/kubilus1/gendev/master/sgdk/mkfiles/Makefile.sgdk_lib -o $MKF/Makefile.sgdk_lib && \
+    curl -fsSL https://raw.githubusercontent.com/Stephane-D/SGDK/v1.62/makefile.gen -o $MKF/makefile.gen && \
     echo "=== mkfiles after download ===" && ls -la $MKF/
 
 # Reset the gendev image's ENTRYPOINT (which defaults to running make)
