@@ -12,19 +12,7 @@ app.use(cors());
 app.use(express.json({ limit: '50mb' }));
 
 app.get('/health', (req, res) => {
-  res.json({ status: 'ok', service: 'megabits-rom-compiler', sgdk: 'gendev' });
-});
-
-app.get('/diag', (req, res) => {
-  const { execSync } = require('child_process');
-  const gendev = process.env.GENDEV || '/opt/gendev';
-  let listing = '';
-  try {
-    listing = execSync(`ls -la ${gendev}/ && echo "---" && ls -la ${gendev}/sgdk* 2>/dev/null && echo "---" && ls -la ${gendev}/sgdkv1.62/mkfiles/ 2>/dev/null && echo "---" && find ${gendev} -name Makefile.rom 2>/dev/null`, { encoding: 'utf8' });
-  } catch (e) {
-    listing = e.stdout || e.message;
-  }
-  res.type('text/plain').send(listing);
+  res.json({ status: 'ok', service: 'megabits-android-compiler', engine: 'phaser3', platform: 'capacitor-android' });
 });
 
 app.post('/compile', async (req, res) => {
@@ -37,29 +25,29 @@ app.post('/compile', async (req, res) => {
   const projectId = `game_${Date.now()}`;
   const projectDir = path.join(os.tmpdir(), projectId);
 
-  console.log(`[${projectId}] Starting compilation for "${gameData.name}"`);
+  console.log(`[${projectId}] Starting Android build for "${gameData.name}"`);
 
   try {
-    // Step 1: Generate SGDK C source from game data
-    console.log(`[${projectId}] Generating C source code...`);
+    // Step 1: Generate Phaser 3 game project
+    console.log(`[${projectId}] Generating Phaser 3 game code...`);
     await generateProject(projectDir, gameData);
 
-    // Step 2: Compile with SGDK
-    console.log(`[${projectId}] Compiling ROM with SGDK...`);
-    const romPath = await compileProject(projectDir, projectId);
+    // Step 2: Build Android APK with Capacitor
+    console.log(`[${projectId}] Building Android APK...`);
+    const apkPath = await compileProject(projectDir, projectId);
 
-    // Step 3: Read the compiled ROM
-    const romBuffer = fs.readFileSync(romPath);
-    const romBase64 = romBuffer.toString('base64');
+    // Step 3: Read the compiled APK
+    const apkBuffer = fs.readFileSync(apkPath);
+    const apkBase64 = apkBuffer.toString('base64');
 
-    console.log(`[${projectId}] Compilation successful! ROM size: ${romBuffer.length} bytes`);
+    console.log(`[${projectId}] Build successful! APK size: ${apkBuffer.length} bytes`);
 
     res.json({
       status: 'success',
       game_name: gameData.name,
-      rom_size: romBuffer.length,
-      rom_base64: romBase64,
-      rom_filename: `${gameData.name.replace(/[^a-zA-Z0-9]/g, '_')}.md`,
+      apk_size: apkBuffer.length,
+      apk_base64: apkBase64,
+      apk_filename: `${gameData.name.replace(/[^a-zA-Z0-9]/g, '_')}.apk`,
     });
 
     // Clean up after a delay
@@ -68,7 +56,7 @@ app.post('/compile', async (req, res) => {
     }, 30000);
 
   } catch (error) {
-    console.error(`[${projectId}] Compilation failed:`, error.message);
+    console.error(`[${projectId}] Build failed:`, error.message);
 
     let buildLog = '';
     try {
@@ -88,6 +76,6 @@ app.post('/compile', async (req, res) => {
 });
 
 app.listen(PORT, '0.0.0.0', () => {
-  console.log(`Sixteen Megabits ROM Compiler running on port ${PORT}`);
-  console.log(`SGDK (GENDEV) path: ${process.env.GENDEV || '/opt/gendev'}`);
+  console.log(`Sixteen Megabits Android Compiler running on port ${PORT}`);
+  console.log(`Engine: Phaser 3 + Capacitor Android`);
 });
